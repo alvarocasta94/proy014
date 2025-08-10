@@ -1,0 +1,154 @@
+package es.cic.curso25.proy014.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import es.cic.curso25.proy014.exceptions.NotFoundException;
+import es.cic.curso25.proy014.model.Vehiculo;
+import es.cic.curso25.proy014.model.Multa;
+import es.cic.curso25.proy014.model.Plaza;
+import es.cic.curso25.proy014.repository.MultaRepository;
+import es.cic.curso25.proy014.repository.VehiculoRepository;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Service
+public class VehiculoService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VehiculoService.class);
+
+    @Autowired
+    VehiculoRepository vehiculoRepository;
+
+    @Autowired
+    MultaRepository multaRepository;
+
+    // CRUD VEHÍCULO
+
+    // CREATE
+    @Transactional
+    public Vehiculo crearVehiculo(Vehiculo vehiculo) {
+        LOGGER.info("Creando un nuevo vehículo");
+        return vehiculoRepository.save(vehiculo);
+    }
+
+    // READ
+    @Transactional(readOnly = true)
+    public Vehiculo getVehiculo(Long id) {
+        LOGGER.info(String.format("Buscando el coche con id %d", id));
+        Optional<Vehiculo> vehiculo = vehiculoRepository.findById(id);
+        if (vehiculo.isEmpty()) {
+            throw new NotFoundException(String.format("No se ha encontrado ningún vehiculo con id %d", id));
+        }
+        return vehiculo.get();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Vehiculo> getAllVehiculos() {
+        LOGGER.info("Obteniendo todos las vehículos");
+        return vehiculoRepository.findAll();
+    }
+
+    // UPDATE
+    @Transactional
+    public Vehiculo updatevehiculo(Long id, Vehiculo vehiculo) {
+        LOGGER.info(String.format("Actualizando el vehículo con id %d", id));
+        // Comprobamos que exista un vehículo con ese id
+        Vehiculo vehiculoEnBD = this.getVehiculo(id);
+
+        vehiculoEnBD.setColor(vehiculo.getColor());
+        vehiculoEnBD.setMarca(vehiculo.getMarca());
+        vehiculoEnBD.setModelo(vehiculo.getModelo());
+        vehiculoEnBD.setTipo(vehiculo.getTipo());
+
+        vehiculoEnBD.setPlaza(vehiculo.getPlaza());
+
+        return vehiculoRepository.save(vehiculoEnBD);
+    }
+
+    // DELETE
+    @Transactional
+    public void deleteVehiculo(Long id) {
+        LOGGER.info(String.format("Eliminando el vehículo con id %d", id));
+        Vehiculo vehiculo = this.getVehiculo(id);
+
+        if (vehiculo.getPlaza() != null) {
+            vehiculo.getPlaza().setVehiculo(null); // Esto rompe el vínculo
+        }
+
+        vehiculoRepository.delete(vehiculo);
+    }
+
+    // CRUD MULTA
+
+    // CREATE
+    @Transactional
+    public Multa agregarMulta(Long id, Multa multa) {
+        LOGGER.info(String.format("Agregando una nueva multa al vehículo con id %d", id));
+        Vehiculo vehiculoModificado = this.getVehiculo(id);
+        vehiculoModificado.addMulta(multa);
+        multa.setVehiculo(vehiculoModificado);
+
+        // Guardamos el vehículo, que por cascade guarda la multa
+        vehiculoRepository.save(vehiculoModificado);
+
+        // Recuperamos la multa guardada desde la base de datos para tenerla actualizada
+        return multaRepository.findById(multa.getId())
+                .orElseThrow(() -> new RuntimeException("Error al recuperar la multa guardada"));
+    }
+
+    // READ
+    @Transactional(readOnly = true)
+    public Multa getMultaById(Long idVehiculo, Long idMulta) {
+        LOGGER.info(String.format("Buscando la multa con id %d en el vehículo con id %d", idMulta, idVehiculo));
+        Multa multa = multaRepository.findById(idMulta)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("No se ha encontrado ninguna multa con id %d", idMulta)));
+
+        if (multa.getVehiculo() == null || !multa.getVehiculo().getId().equals(idVehiculo)) {
+            throw new NotFoundException(
+                    String.format("La multa con id %d no pertenece al vehículo con id %d", idMulta, idVehiculo));
+        }
+        return multa;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Multa> getMultasByVehiculo(Long id) {
+        LOGGER.info(String.format("Obteniendo todas las multas del vehículo con id %d", id));
+        Vehiculo vehiculo = vehiculoRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("No se ha encontrado ningún vehículo con id %d", id)));
+        return vehiculo.getMultas();
+    }
+
+    // UPDATE
+    @Transactional
+    public Multa updateMulta(Long idVehiculo, Long idMulta, Multa multa) {
+        LOGGER.info(String.format("Actualizando la multa con id %d del vehículo con id %d", idMulta, idVehiculo));
+        // Comprobamos que exista una multa con ese idMulta en el vehículo con
+        // idVehiculo
+        Multa multaEnBD = this.getMultaById(idVehiculo, idMulta);
+        multaEnBD.setFecha(multa.getFecha());
+        multaEnBD.setCuantia(multa.getCuantia());
+        return multaRepository.save(multaEnBD);
+    }
+
+    // DELETE
+    @Transactional
+    public void eliminarMulta(Long idVehiculo, Long idMulta) {
+        LOGGER.info(String.format("Eliminando la multa con id %d del vehículo con id %d", idMulta, idVehiculo));
+        Vehiculo vehiculoModificado = this.getVehiculo(idVehiculo);
+        Multa multaAEliminar = this.getMultaById(idVehiculo, idMulta);
+        vehiculoModificado.removeMulta(multaAEliminar);
+
+        // Guardamos el vehículo, que por cascade guarda la multa
+        vehiculoRepository.save(vehiculoModificado);
+    }
+
+}
