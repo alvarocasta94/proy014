@@ -1,4 +1,4 @@
-package es.cic.curso25.proy014.model;
+package es.cic.curso25.proy015.model;
 
 import java.time.LocalDate;
 

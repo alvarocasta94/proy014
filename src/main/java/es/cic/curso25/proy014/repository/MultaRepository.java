@@ -1,8 +1,8 @@
-package es.cic.curso25.proy014.repository;
+package es.cic.curso25.proy015.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import es.cic.curso25.proy014.model.Multa;
+import es.cic.curso25.proy015.model.Multa;
 
 public interface MultaRepository extends JpaRepository<Multa, Long>{
     

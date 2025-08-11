@@ -1,4 +1,4 @@
-package es.cic.curso25.proy014.model;
+package es.cic.curso25.proy015.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +26,7 @@ public class Plaza {
     private Long id;
 
     private String numero;
+    private boolean disponible;
     private boolean ocupado;
 
     @OneToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
@@ -80,6 +81,13 @@ public class Plaza {
     public void setOcupado(boolean ocupado) {
         this.ocupado = ocupado;
     }
+     public boolean isDisponible() {
+        return disponible;
+    }
+
+    public void setDisponible(boolean disponible) {
+        this.disponible = disponible;
+    }
 
     @Override
     public int hashCode() {
@@ -108,7 +116,11 @@ public class Plaza {
 
     @Override
     public String toString() {
-        return "Plaza [id=" + id + ", numero=" + numero + ", ocupado=" + ocupado + "]";
+        return "Plaza [id=" + id + ", numero=" + numero + ", disponible=" + disponible + ", ocupado=" + ocupado + "]";
     }
+
+    
+
+   
 
 }

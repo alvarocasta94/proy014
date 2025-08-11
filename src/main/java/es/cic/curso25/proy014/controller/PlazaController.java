@@ -1,4 +1,4 @@
-package es.cic.curso25.proy014.controller;
+package es.cic.curso25.proy015.controller;
 
 import java.util.List;
 
@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import es.cic.curso25.proy014.model.Plaza;
-import es.cic.curso25.proy014.service.PlazaService;
-import es.cic.curso25.proy014.service.VehiculoService;
+import es.cic.curso25.proy015.model.Plaza;
+import es.cic.curso25.proy015.service.PlazaService;
+import es.cic.curso25.proy015.service.VehiculoService;
 
 @RestController
 @RequestMapping("/plaza")

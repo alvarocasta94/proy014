@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>es.cic.curso25</groupId>
-	<artifactId>proy014</artifactId>
+	<artifactId>proy015</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>proy014</name>
+	<name>proy015</name>
 	<description>Aplicacion Garage</description>
 	<url/>
 	<licenses>

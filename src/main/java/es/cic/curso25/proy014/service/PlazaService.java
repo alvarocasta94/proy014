@@ -1,4 +1,4 @@
-package es.cic.curso25.proy014.service;
+package es.cic.curso25.proy015.service;
 
 import java.util.List;
 import java.util.Optional;
@@ -8,11 +8,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
-import es.cic.curso25.proy014.exceptions.NotFoundException;
-import es.cic.curso25.proy014.model.Plaza;
-import es.cic.curso25.proy014.model.Vehiculo;
-import es.cic.curso25.proy014.repository.PlazaRepository;
-import es.cic.curso25.proy014.repository.VehiculoRepository;
+import es.cic.curso25.proy015.exceptions.NotFoundException;
+import es.cic.curso25.proy015.model.Plaza;
+import es.cic.curso25.proy015.model.Vehiculo;
+import es.cic.curso25.proy015.repository.PlazaRepository;
+import es.cic.curso25.proy015.repository.VehiculoRepository;
 
 public class PlazaService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlazaService.class);
@@ -23,7 +23,7 @@ public class PlazaService {
     @Autowired
     PlazaRepository plazaRepository;
 
-    // CRUD VEHÍCULO
+    // CRUD PLAZA
 
     // READ
     @Transactional(readOnly = true)
@@ -49,13 +49,19 @@ public class PlazaService {
         // Comprobamos que exista un Plaza con ese id
         Plaza plazaEnBD = this.getPlaza(id);
 
+        // Regla: no se puede poner como no disponible si está ocupada
+        if (!plaza.isDisponible() && plazaEnBD.isOcupado()) {
+            throw new IllegalArgumentException("No se puede marcar la plaza como no disponible si está ocupada");
+        }
+
+        plazaEnBD.setDisponible(plaza.isDisponible());
+
         plazaEnBD.setOcupado(plaza.isOcupado());
 
         plazaEnBD.setVehiculo(plaza.getVehiculo());
 
         return plazaRepository.save(plazaEnBD);
     }
-
 
     // Asignar Vehículo a Plaza
     @Transactional
