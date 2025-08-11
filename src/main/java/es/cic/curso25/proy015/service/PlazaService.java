@@ -50,55 +50,61 @@ public class PlazaService {
         Plaza plazaEnBD = this.getPlaza(id);
 
         // Regla: no se puede poner como no disponible si está ocupada
-        if (!plaza.isDisponible() && plazaEnBD.isOcupado()) {
+        if (!plaza.isDisponible() && plazaEnBD.getVehiculoOcupante() != null) {
             throw new IllegalArgumentException("No se puede marcar la plaza como no disponible si está ocupada");
         }
 
         plazaEnBD.setDisponible(plaza.isDisponible());
-
-        plazaEnBD.setOcupado(plaza.isOcupado());
-
-        plazaEnBD.setVehiculo(plaza.getVehiculo());
 
         return plazaRepository.save(plazaEnBD);
     }
 
     // Asignar Vehículo a Plaza
     @Transactional
-    public Plaza asignarVehiculo(Long plazaId, Long vehiculoId) {
-        LOGGER.info(String.format("Asignando vehículo %d a plaza %d", vehiculoId, plazaId));
+    public Plaza asignarVehiculoAPlaza(Long idPlaza, Vehiculo vehiculo) {
+        LOGGER.info(String.format("Asignando vehículo con id %d a la plaza con id %d", vehiculo.getId(), idPlaza));
 
-        // Buscar plaza
-        Plaza plaza = plazaRepository.findById(plazaId)
-                .orElseThrow(() -> new NotFoundException(String.format("No se encontró la plaza con id %d", plazaId)));
+        Plaza plaza = getPlaza(idPlaza);
 
-        // Buscar vehículo
-        Vehiculo vehiculo = vehiculoRepository.findById(vehiculoId)
-                .orElseThrow(
-                        () -> new NotFoundException(String.format("No se encontró el vehículo con id %d", vehiculoId)));
-
-        // Si la plaza ya tiene un vehículo asignado, desvincularlo
-        if (plaza.getVehiculo() != null) {
-            Vehiculo vehiculoAnterior = plaza.getVehiculo();
-            vehiculoAnterior.setPlaza(null);
+        if (plaza.getVehiculosAsignados().size() >= 5) {
+            throw new IllegalStateException("No se puede asignar más de 5 vehículos a la misma plaza");
         }
 
-        // Si el vehículo ya estaba asignado a otra plaza, desvincular esa plaza
-        if (vehiculo.getPlaza() != null && !vehiculo.getPlaza().equals(plaza)) {
-            Plaza plazaAnterior = vehiculo.getPlaza();
-            plazaAnterior.setVehiculo(null);
+        // Evitar duplicados
+        if (!plaza.getVehiculosAsignados().contains(vehiculo)) {
+            plaza.asignarVehiculo(vehiculo);
+            // También actualizamos el vehículo para que apunte a la plaza asignada
+            vehiculo.setPlazaAsignada(plaza);
+            // Guardamos vehículo y plaza
+            vehiculoRepository.save(vehiculo);
+            plazaRepository.save(plaza);
         }
-
-        // Asignar vehículo a plaza y plaza a vehículo (manteniendo la relación
-        // bidireccional)
-        plaza.setVehiculo(vehiculo);
-        vehiculo.setPlaza(plaza);
-
-        // Guardar ambos para persistir la relación
-        plazaRepository.save(plaza);
-        vehiculoRepository.save(vehiculo);
 
         return plaza;
     }
+
+    // Desasignar Vehículo a Plaza
+    @Transactional
+    public Plaza desasignarVehiculoDePlaza(Long idPlaza, Vehiculo vehiculo) {
+        LOGGER.info(String.format("Desasignando vehículo con id %d de la plaza con id %d", vehiculo.getId(), idPlaza));
+
+        Plaza plaza = getPlaza(idPlaza);
+
+        if (plaza.getVehiculosAsignados().contains(vehiculo)) {
+            plaza.quitarVehiculo(vehiculo);
+            // También limpiamos la plazaAsignada del vehículo
+            if (vehiculo.getPlazaAsignada() != null && vehiculo.getPlazaAsignada().equals(plaza)) {
+                vehiculo.setPlazaAsignada(null);
+            }
+            vehiculoRepository.save(vehiculo);
+            plazaRepository.save(plaza);
+        } else {
+            throw new IllegalArgumentException("El vehículo no está asignado a la plaza indicada");
+        }
+
+        return plaza;
+    }
+
+    
 
 }

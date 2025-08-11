@@ -67,7 +67,31 @@ public class VehiculoService {
         vehiculoEnBD.setModelo(vehiculo.getModelo());
         vehiculoEnBD.setTipo(vehiculo.getTipo());
 
-        vehiculoEnBD.setPlaza(vehiculo.getPlaza());
+        return vehiculoRepository.save(vehiculoEnBD);
+    }
+
+    @Transactional
+    public Vehiculo aparcarVehiculo(Long idVehiculo, Plaza plaza) {
+        LOGGER.info(String.format("Aparcando el vehículo con id %d en plaza con id %d", idVehiculo, plaza.getId()));
+        // Comprobamos que exista un vehículo con ese id
+        Vehiculo vehiculoEnBD = this.getVehiculo(idVehiculo);
+
+        vehiculoEnBD.setPlazaOcupada(plaza);
+        plaza.ocuparConVehiculo(vehiculoEnBD);
+
+        return vehiculoRepository.save(vehiculoEnBD);
+    }
+
+    @Transactional
+    public Vehiculo desaparcarVehiculo(Long idVehiculo) {
+        LOGGER.info(String.format("Desaparcando el vehículo con id %d", idVehiculo));
+        Vehiculo vehiculoEnBD = this.getVehiculo(idVehiculo);
+
+        Plaza plaza = vehiculoEnBD.getPlazaOcupada();
+        if (plaza != null) {
+            plaza.desocuparVehiculo(); // Limpia la plaza ocupada y rompe la relación bidireccional
+            vehiculoEnBD.setPlazaOcupada(null);
+        }
 
         return vehiculoRepository.save(vehiculoEnBD);
     }
@@ -78,8 +102,12 @@ public class VehiculoService {
         LOGGER.info(String.format("Eliminando el vehículo con id %d", id));
         Vehiculo vehiculo = this.getVehiculo(id);
 
-        if (vehiculo.getPlaza() != null) {
-            vehiculo.getPlaza().setVehiculo(null); // Esto rompe el vínculo
+        if (vehiculo.getPlazaAsignada() != null) {
+            vehiculo.getPlazaAsignada().quitarVehiculo(vehiculo); // rompe relación plaza asignada
+        }
+
+        if (vehiculo.getPlazaOcupada() != null) {
+            vehiculo.getPlazaOcupada().ocuparConVehiculo(null); // rompe relación plaza ocupada
         }
 
         vehiculoRepository.delete(vehiculo);

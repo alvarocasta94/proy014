@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 
@@ -25,10 +26,14 @@ public class Vehiculo {
     private String modelo;
     private String color;
 
-    private boolean aparcado;
+    // Plaza que tiene asignada el vehículo
+    @ManyToOne()
+    @JoinColumn(name = "plaza_id")
+    private Plaza plazaAsignada;
 
-    @OneToOne(mappedBy = "vehiculo")
-    private Plaza plaza;
+    // Plaza donde está realmente aparcado
+    @OneToOne(mappedBy = "vehiculoOcupado")
+    private Plaza plazaOcupada;
 
     @OneToMany(mappedBy = "vehiculo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Multa> multas = new ArrayList<>();
@@ -46,13 +51,23 @@ public class Vehiculo {
         }
     }
 
-    public void setPlaza(Plaza nuevaPlaza) {
-        if (this.plaza != null) {
-            this.plaza.setVehiculo(null); // "Desconecta" la plaza antigua
+    public void setPlazaAsignada(Plaza nuevaPlaza) {
+        if (this.plazaAsignada != null) {
+            this.plazaAsignada.quitarVehiculo(this); // quitar de la lista anterior
         }
-        this.plaza = nuevaPlaza;
-        if (nuevaPlaza != null && nuevaPlaza.getVehiculo() != this) {
-            nuevaPlaza.setVehiculo(this); // Conecta la nueva plaza
+        this.plazaAsignada = nuevaPlaza;
+        if (nuevaPlaza != null && !nuevaPlaza.getVehiculosAsignados().contains(this)) {
+            nuevaPlaza.asignarVehiculo(this); // añadir a la nueva lista
+        }
+    }
+
+    public void setPlazaOcupada(Plaza nuevaPlaza) {
+        if (this.plazaOcupada != null) {
+            this.plazaOcupada.ocuparConVehiculo(null);
+        }
+        this.plazaOcupada = nuevaPlaza;
+        if (nuevaPlaza != null && nuevaPlaza.getVehiculoOcupante() != this) {
+            nuevaPlaza.ocuparConVehiculo(this);
         }
     }
 
@@ -81,8 +96,12 @@ public class Vehiculo {
         this.color = color;
     }
 
-    public Plaza getPlaza() {
-        return plaza;
+    public Plaza getPlazaAsignada() {
+        return plazaAsignada;
+    }
+
+    public Plaza getPlazaOcupada() {
+        return plazaOcupada;
     }
 
     public String getMarca() {
@@ -107,14 +126,6 @@ public class Vehiculo {
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
-    }
-
-    public boolean isAparcado() {
-        return aparcado;
-    }
-
-    public void setAparcado(boolean aparcado) {
-        this.aparcado = aparcado;
     }
 
     public List<Multa> getMultas() {
@@ -148,8 +159,8 @@ public class Vehiculo {
 
     @Override
     public String toString() {
-        return "Vechiculo [id=" + id + ", tipo=" + tipo + ", marca=" + marca + ", modelo=" + modelo + ", color=" + color
-                + ", aparcado=" + aparcado + "]";
+        return "Vehiculo [id=" + id + ", tipo=" + tipo + ", marca=" + marca + ", modelo=" + modelo + ", color=" + color
+                + "]";
     }
 
 }

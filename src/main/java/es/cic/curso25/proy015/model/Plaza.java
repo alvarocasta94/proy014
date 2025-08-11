@@ -27,23 +27,56 @@ public class Plaza {
 
     private String numero;
     private boolean disponible;
-    private boolean ocupado;
+
+    @OneToMany(mappedBy = "plazaAsignada", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    private List<Vehiculo> vehiculosAsignados = new ArrayList<>();
 
     @OneToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    @JoinColumn(name = "vehiculo_id")
-    private Vehiculo vehiculo;
+    @JoinColumn(name = "vehiculo_ocupante_id")
+    private Vehiculo vehiculoOcupante;
 
-    public void setVehiculo(Vehiculo nuevoVehiculo) {
-        // Si ya hay un vehículo asignado, lo desvinculamos
-        if (this.vehiculo != null && this.vehiculo.getPlaza() == this) {
-            this.vehiculo.setPlaza(null);
+    public void asignarVehiculo(Vehiculo nuevoVehiculo) {
+        if (nuevoVehiculo != null && !this.vehiculosAsignados.contains(nuevoVehiculo)) {
+            this.vehiculosAsignados.add(nuevoVehiculo);
+
+            // Mantener la relación bidireccional
+            if (nuevoVehiculo.getPlazaAsignada() != this) {
+                nuevoVehiculo.setPlazaAsignada(this);
+            }
+        }
+    }
+
+    public void quitarVehiculo(Vehiculo vehiculo) {
+        if (this.vehiculosAsignados.remove(vehiculo)) {
+            if (vehiculo.getPlazaAsignada() == this) {
+                vehiculo.setPlazaAsignada(null);
+            }
+        }
+    }
+
+    public boolean ocuparConVehiculo(Vehiculo nuevoVehiculo) {
+        // Si ya hay un vehículo ocupando la plaza, no permitimos otro
+        if (this.vehiculoOcupante != null) {
+            return false; // No se pudo ocupar porque ya está ocupada
         }
 
-        this.vehiculo = nuevoVehiculo;
+        // Asignamos el nuevo vehículo
+        this.vehiculoOcupante = nuevoVehiculo;
 
-        // Si el nuevo vehículo no está null y no está vinculado todavía, lo vinculamos
-        if (nuevoVehiculo != null && nuevoVehiculo.getPlaza() != this) {
-            nuevoVehiculo.setPlaza(this);
+        // Aseguramos la relación bidireccional
+        if (nuevoVehiculo != null && nuevoVehiculo.getPlazaOcupada() != this) {
+            nuevoVehiculo.setPlazaOcupada(this);
+        }
+        return true; // Operación exitosa
+    }
+
+    public void desocuparVehiculo() {
+        if (this.vehiculoOcupante != null) {
+            // Rompemos la relación bidireccional
+            if (this.vehiculoOcupante.getPlazaOcupada() == this) {
+                this.vehiculoOcupante.setPlazaOcupada(null);
+            }
+            this.vehiculoOcupante = null;
         }
     }
 
@@ -70,18 +103,15 @@ public class Plaza {
         return numero;
     }
 
-    public Vehiculo getVehiculo() {
-        return vehiculo;
+    public List<Vehiculo> getVehiculosAsignados() {
+        return vehiculosAsignados;
     }
 
-    public boolean isOcupado() {
-        return ocupado;
+    public Vehiculo getVehiculoOcupante() {
+        return vehiculoOcupante;
     }
 
-    public void setOcupado(boolean ocupado) {
-        this.ocupado = ocupado;
-    }
-     public boolean isDisponible() {
+    public boolean isDisponible() {
         return disponible;
     }
 
@@ -116,11 +146,7 @@ public class Plaza {
 
     @Override
     public String toString() {
-        return "Plaza [id=" + id + ", numero=" + numero + ", disponible=" + disponible + ", ocupado=" + ocupado + "]";
+        return "Plaza [id=" + id + ", numero=" + numero + ", disponible=" + disponible + "]";
     }
-
-    
-
-   
 
 }
